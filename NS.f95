@@ -265,45 +265,6 @@ program NS
 
             ! ---------------------------------------       Electric Fields Equation        -------------------------------------
 
-            ! Laplacian Of phi = 0
-            do i = 2, (nx-1)
-                do j = 2, (ny-1)
-                    
-                    phiA(i,j) = (dy/dx)*(phi(i+1,j) + phi(i-1,j))
-                    phiB(i,j) = (dx/dy)*(phi(i,j+1) + phi(i,j-1))
-
-                    phi(i,j) = (phiA(i,j) + phiB(i,j))/( 2*(dy/dx) + 2*(dx/dy) )
-
-                end do
-            end do
-
-            !Phi - Boundary Conditions :
-
-            !Top Wall
-            do i=1,nx
-                j=ny
-                phi(i,j)=phi(i,j-1)
-            end do
-            
-            !Bottom Wall
-            do i=1,nx
-                j=1
-                phi(i,j)=phi(i,j+1)
-            end do
-            
-            !Left Wall
-            do j=1,(ny-1)
-                i=1
-                phi(i,j)= 2.0d0 - phi(i+1,j)
-            end do
-
-            !Right Wall
-            do j = 1, (ny-1)
-                i=nx
-                phi(i,j)= -phi(i-1,j)
-            end do
-
-
 
 
             ! Poisson - Boltzmann Equation :
