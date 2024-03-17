@@ -1,0 +1,2 @@
+gfortran NS.f95 -o NS -ffree-line-length-none
+.\NS
