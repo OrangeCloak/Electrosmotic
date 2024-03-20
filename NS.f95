@@ -59,7 +59,7 @@ program NS
     dy = ly/jr
 
     Re = 17.107
-    uwall = 0.68717
+    uwall = 0.137
 
     dt = 0.001
     nt = 10
