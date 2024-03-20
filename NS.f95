@@ -7,7 +7,7 @@ program NS
     double precision :: dx , dy ,lx , ly
     
     ! Define Flow Properties
-    double precision :: Re , G , K  
+    double precision :: Re 
     
     ! Define Time Constraints
     real :: dt
@@ -29,6 +29,8 @@ program NS
     integer :: time_iter
     double precision :: error
 
+    !Define Helmholtz–Smoluchowski slip flow boundary
+    double precision :: uwall
 
     ! Define SOR Parameters 
     double precision :: n1 , n2 , n3 , n4
@@ -36,8 +38,6 @@ program NS
     double precision , dimension(101,21) :: vs , vn 
     double precision , dimension(101,21) :: ape , apw , aps , apn , app
     double precision , dimension(101,21) :: ae , aw , an , as , ap
-    double precision , dimension(101,21) :: phiE , phiW , phiN , phiS ,phiTotal ,phiA ,phiB
-    double precision , dimension(101,21) :: psiE ,psiW ,psiN ,psiS ,psiTotal
     integer :: i ,j 
 
 
@@ -59,8 +59,7 @@ program NS
     dy = ly/jr
 
     Re = 17.107
-    G = 89.8
-    K = 0.001
+    uwall = 0.68717
 
     dt = 0.001
     nt = 10
@@ -122,15 +121,7 @@ program NS
 
                     ap(i,j)= 1 + n1*(uw(i,j)-ue(i,j))+ n2*(vs(i,j)-vn(i,j))- 2*(n3+n4)
 
-                    ! Define Potential Term :
-                    phiE(i,j) = 0.5*(phi(i+1,j)+phi(i,j))
-                    phiW(i,j) = 0.5*(phi(i,j)+phi(i-1,j))
-                    phiN(i,j) = 0.5*(phi(i,j+1)+phi(i,j))
-                    phiS(i,j) = 0.5*(phi(i,j)+phi(i,j-1))
-
-                    phiTotal(i,j) = (phiE(i,j) - phiW(i,j))*dy + (phiN(i,j) - phiS(i,j))*dx
-
-                    ustar(i,j)=(ae(i,j)*uold(i+1,j)+aw(i,j)*uold(i-1,j) + an(i,j)*uold(i,j+1)+as(i,j)*uold(i,j-1)+ ap(i,j)*uold(i,j)) + dt*(1.0d0/dx)*(pold(i,j)-pold(i+1,j) + G*psi(i,j)*phiTotal(i,j)) 
+                    ustar(i,j)=(ae(i,j)*uold(i+1,j)+aw(i,j)*uold(i-1,j) + an(i,j)*uold(i,j+1)+as(i,j)*uold(i,j-1)+ ap(i,j)*uold(i,j)) + dt*(1.0d0/dx)*(pold(i,j)-pold(i+1,j)) 
                     
                 end do
             end do
@@ -148,21 +139,18 @@ program NS
             do j=1,ny
                 i=1
                 ustar(i,j)=1.0d0
-
             end do
             
             !Top wall
             do i=2,(nx-1)
                 j=ny
-                ustar(i,j)= -ustar(i,j-1)
-
+                ustar(i,j)= 2*uwall - ustar(i,j-1)
             end do
             
             !Bottom Wall
             do i=2,(nx-1)
                 j=1
-                ustar(i,j)= -ustar(i,j+1)
-
+                ustar(i,j)= 2*uwall - ustar(i,j+1)
             end do
                 
 
@@ -250,67 +238,14 @@ program NS
             !Left Wall
             do j=1,(ny-1)
                 i=1
-                pnew(i,j)=pnew(i+1,j)
+                pnew(i,j)=0.0
             end do
 
             !Right Wall
             do j = 1, (ny-1)
                 i=nx
-                pnew(i,j)=pnew(i-1,j)
+                pnew(i,j)=0.0
             end do
-
-
-
-
-
-            ! ---------------------------------------       Electric Fields Equation        -------------------------------------
-
-
-
-            ! Poisson - Boltzmann Equation :
-            do i = 2, (nx-1)
-                do j = 2, (ny-1)
-                    
-                    psiE(i,j) = (0.5/dx)*(psi(i+1,j))
-                    psiW(i,j) = (0.5/dx)*(psi(i-1,j))
-                    psiN(i,j) = (0.5/dy)*(psi(i,j+1))
-                    psiS(i,j) = (0.5/dy)*(psi(i,j-1))
-
-                    psiTotal(i,j) = psiE(i,j) + psiW(i,j) + psiN(i,j) + psiS(i,j)
-
-                    psi(i,j) = ( psiTotal(i,j) - psi(i,j)*((1.0d0/dx) + (1.0d0/dy)) ) / (K)
-
-                end do
-            end do
-
-            ! Psi Boundary Conditions
-
-            !Top Wall
-            do i=1,nx
-                j=ny
-                psi(i,j)= 15.56d0 - psi(i,j-1)
-            end do
-            
-            !Bottom Wall
-            do i=1,nx
-                j=1
-                psi(i,j)= 15.56d0 - psi(i,j+1)
-            end do
-            
-            !Left Wall
-            do j=1,(ny-1)
-                i=1
-                psi(i,j)=psi(i+1,j)
-            end do
-
-            !Right Wall
-            do j = 1, (ny-1)
-                i=nx
-                psi(i,j)=psi(i-1,j)
-            end do
-
-
-
 
 
             ! ---------------------------------------        Velocity Correction           ---------------------------------------
@@ -342,13 +277,13 @@ program NS
             !Top Wall
             do i=2,(nx-1)
                 j=ny
-                unew(i,j)= -unew(i,j-1)
+                unew(i,j)= 2*uwall - unew(i,j-1)
             end do
             
             !Bottom Wall
             do i=2,(nx-1)
                 j=1
-                unew(i,j)= -unew(i,j+1)
+                unew(i,j)= 2*uwall - unew(i,j+1)
             end do
 
             ! Y - Velocity Boundary Conditions
@@ -418,9 +353,6 @@ program NS
             ufinal(i,j)=0.5*(unew(i,j) + unew(i,j+1))
             vfinal(i,j)=0.5*(vnew(i,j) + vnew(i+1,j))
             pfinal(i,j)=0.25*(pnew(i,j) + pnew(i,j+1) + pnew(i+1,j) + pnew(i+1,j+1))
-            phif(i,j) = 0.25*(phif(i,j) + phif(i,j+1) + phif(i+1,j) + phif(i+1,j+1))
-            psif(i,j) = 0.25*(psif(i,j) + psif(i,j+1) + psif(i+1,j) + psif(i+1,j+1))
-            ElectricPot(i,j) = phif(i,j) + psif(i,j)
 
         end do
     end do
@@ -430,7 +362,7 @@ program NS
     open(unit = 2 , file='uniform.csv')
     do i = 1, (nx-1)
         do j = 1, (ny-1)
-            write(2,*) ufinal(i,j) , ',' , vfinal(i,j) , ',' , pfinal(i,j) , ',' ,ElectricPot(i,j)
+            write(2,*) ufinal(i,j) , ',' , vfinal(i,j) , ',' , pfinal(i,j) 
         end do
     end do
     close(2)
