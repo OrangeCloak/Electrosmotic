@@ -7,7 +7,7 @@ program NS
     double precision :: dx , dy ,lx , ly
     
     ! Define Flow Properties
-    double precision :: Re , G , K  
+    double precision :: Re , G , alpha , beta
     
     ! Define Time Constraints
     real :: dt
@@ -21,13 +21,12 @@ program NS
     double precision :: vold(101,21) , vstar(101,21) , vnew(101,21) ,vfinal(101,21)
     double precision :: pold(101,21) , pstar(101,21) , pnew(101,21) , pcor(101,21) , bp(101,21) ,pfinal(101,21)
     double precision :: phi(101,21) , phif(101,21)
-    double precision :: psi(101,21) ,psif(101,21)
-    double precision :: ElectricPot(101,21)
+
 
     ! Define Iteration Parameters
     integer :: iter
     integer :: time_iter
-    double precision :: error
+    double precision :: error , verror
 
 
     ! Define SOR Parameters 
@@ -36,8 +35,7 @@ program NS
     double precision , dimension(101,21) :: vs , vn 
     double precision , dimension(101,21) :: ape , apw , aps , apn , app
     double precision , dimension(101,21) :: ae , aw , an , as , ap
-    double precision , dimension(101,21) :: phiE , phiW , phiN , phiS ,phiTotal ,phiA ,phiB
-    double precision , dimension(101,21) :: psiE ,psiW ,psiN ,psiS ,psiTotal
+    double precision , dimension(101,21) :: phiE , phiW , phiN , phiS ,phiTotal , A, B
     integer :: i ,j 
 
 
@@ -58,9 +56,11 @@ program NS
     dx = lx/ir
     dy = ly/jr
 
-    Re = 17.107
-    G = 89.8
-    K = 0.001
+    Re = 0.0427
+    G = 23.42831211
+    alpha = 2.435560743
+    beta = 3.7e-23
+
 
     dt = 0.001
     nt = 10
@@ -83,8 +83,6 @@ program NS
     bp(:,:) = 0.0
     
     phi(:,:) = 0.0
-
-    psi(:,:) = 0.0
 
     ! Inititialize Error 
     error = 1.0d0
@@ -123,14 +121,14 @@ program NS
                     ap(i,j)= 1 + n1*(uw(i,j)-ue(i,j))+ n2*(vs(i,j)-vn(i,j))- 2*(n3+n4)
 
                     ! Define Potential Term :
-                    phiE(i,j) = 0.5*(phi(i+1,j)+phi(i,j))
-                    phiW(i,j) = 0.5*(phi(i,j)+phi(i-1,j))
-                    phiN(i,j) = 0.5*(phi(i,j+1)+phi(i,j))
-                    phiS(i,j) = 0.5*(phi(i,j)+phi(i,j-1))
+                    phiE(i,j) = 0.5*(phi(i+1,j)-phi(i,j))
+                    phiW(i,j) = 0.5*(phi(i,j)-phi(i-1,j))
+                    phiN(i,j) = 0.5*(phi(i,j+1)-phi(i,j))
+                    phiS(i,j) = 0.5*(phi(i,j)-phi(i,j-1))
 
-                    phiTotal(i,j) = (phiE(i,j) - phiW(i,j))*dy + (phiN(i,j) - phiS(i,j))*dx
+                    phiTotal(i,j) = (phiE(i,j) - phiW(i,j))/dx + (phiN(i,j) - phiS(i,j))/dy
 
-                    ustar(i,j)=(ae(i,j)*uold(i+1,j)+aw(i,j)*uold(i-1,j) + an(i,j)*uold(i,j+1)+as(i,j)*uold(i,j-1)+ ap(i,j)*uold(i,j)) + dt*(1.0d0/dx)*(pold(i,j)-pold(i+1,j) + G*psi(i,j)*phiTotal(i,j)) 
+                    ustar(i,j)=(ae(i,j)*uold(i+1,j)+aw(i,j)*uold(i-1,j) + an(i,j)*uold(i,j+1)+as(i,j)*uold(i,j-1)+ ap(i,j)*uold(i,j)) + dt*(1.0d0/dx)*(pold(i,j)-pold(i+1,j) + G*phiTotal(i,j)) 
                     
                 end do
             end do
@@ -268,45 +266,57 @@ program NS
 
 
             ! Poisson - Boltzmann Equation :
-            do i = 2, (nx-1)
-                do j = 2, (ny-1)
-                    
-                    psiE(i,j) = (0.5/dx)*(psi(i+1,j))
-                    psiW(i,j) = (0.5/dx)*(psi(i-1,j))
-                    psiN(i,j) = (0.5/dy)*(psi(i,j+1))
-                    psiS(i,j) = (0.5/dy)*(psi(i,j-1))
 
-                    psiTotal(i,j) = psiE(i,j) + psiW(i,j) + psiN(i,j) + psiS(i,j)
+            phi(:,:) = 0.0
+            verror = 0.0
 
-                    psi(i,j) = ( psiTotal(i,j) - psi(i,j)*((1.0d0/dx) + (1.0d0/dy)) ) / (K)
-
+            do while (verror > 1e-06)
+                
+                do i = 2, (nx-1)
+                    do j = 2, (ny-1)
+                        
+                        A(i,j) = beta*alpha*cosh(alpha*phi(i,j))
+                        B(i,j) = beta*sinh(alpha*phi(i,j)) - beta*alpha*phi(i,j)*cosh(alpha*phi(i,j))
+    
+                        phiE(i,j) = 0.5*(phi(i+1,j)-phi(i,j))
+                        phiW(i,j) = 0.5*(phi(i,j)-phi(i-1,j))
+                        phiN(i,j) = 0.5*(phi(i,j+1)-phi(i,j))
+                        phiS(i,j) = 0.5*(phi(i,j)-phi(i,j-1))
+    
+                        phi(i,j) = (  ((phiE(i,j) - phiW(i,j))/dy) + ((phiN(i,j) - phiS(i,j))/dx) - B(i,j)  )/A(i,j)
+    
+                        verror=verror+dabs(phi(i,j))
+    
+                    end do
                 end do
-            end do
 
-            ! Psi Boundary Conditions
+            end do
+                
+
+            ! Phi Boundary Conditions
 
             !Top Wall
             do i=1,nx
                 j=ny
-                psi(i,j)= 15.56d0 - psi(i,j-1)
+                phi(i,j)= 2.0d0 - phi(i,j-1)
             end do
             
             !Bottom Wall
             do i=1,nx
                 j=1
-                psi(i,j)= 15.56d0 - psi(i,j+1)
+                phi(i,j)= 2.0d0 - phi(i,j+1)
             end do
             
             !Left Wall
             do j=1,(ny-1)
                 i=1
-                psi(i,j)=psi(i+1,j)
+                phi(i,j)=phi(i+1,j)
             end do
 
             !Right Wall
             do j = 1, (ny-1)
                 i=nx
-                psi(i,j)=psi(i-1,j)
+                phi(i,j)=phi(i-1,j)
             end do
 
 
@@ -410,8 +420,6 @@ program NS
     vfinal(:,:) = 0.0
     pfinal(:,:) = 0.0
     phif(:,:) = 0.0
-    psif(:,:) = 0.0
-    ElectricPot(:,:) = 0.0
 
     do i=1,(nx-1)
         do j=1,(ny-1)
@@ -419,8 +427,6 @@ program NS
             vfinal(i,j)=0.5*(vnew(i,j) + vnew(i+1,j))
             pfinal(i,j)=0.25*(pnew(i,j) + pnew(i,j+1) + pnew(i+1,j) + pnew(i+1,j+1))
             phif(i,j) = 0.25*(phif(i,j) + phif(i,j+1) + phif(i+1,j) + phif(i+1,j+1))
-            psif(i,j) = 0.25*(psif(i,j) + psif(i,j+1) + psif(i+1,j) + psif(i+1,j+1))
-            ElectricPot(i,j) = phif(i,j) + psif(i,j)
 
         end do
     end do
@@ -430,7 +436,7 @@ program NS
     open(unit = 2 , file='uniform.csv')
     do i = 1, (nx-1)
         do j = 1, (ny-1)
-            write(2,*) ufinal(i,j) , ',' , vfinal(i,j) , ',' , pfinal(i,j) , ',' ,ElectricPot(i,j)
+            write(2,*) ufinal(i,j) , ',' , vfinal(i,j) , ',' , pfinal(i,j) 
         end do
     end do
     close(2)
