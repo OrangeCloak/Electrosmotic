@@ -86,6 +86,7 @@ program NS
 
     ! Inititialize Error 
     error = 1.0d0
+    verror = 1.0d0
     iter = 0
     time_iter = 1
 
@@ -268,7 +269,7 @@ program NS
             ! Poisson - Boltzmann Equation :
 
             phi(:,:) = 0.0
-            verror = 0.0
+            
 
             do while (verror > 1e-06)
                 
@@ -285,8 +286,13 @@ program NS
     
                         phi(i,j) = (  ((phiE(i,j) - phiW(i,j))/dy) + ((phiN(i,j) - phiS(i,j))/dx) - B(i,j)  )/A(i,j)
     
+                    end do
+                end do
+
+                verror = 0.0
+                do i=1,nx
+                    do j=1,ny
                         verror=verror+dabs(phi(i,j))
-    
                     end do
                 end do
 
