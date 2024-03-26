@@ -189,7 +189,7 @@ program NS
             ! Y - Momentum Boundary Condition
             do j=2,(ny-1)
                 i=nx
-                vstar(i,j)=vstar(i-1,j)
+                vstar(i,j)=0.0
             end do
                     
             do j=2,(ny-1)
@@ -253,10 +253,10 @@ program NS
             end do
 
             !Right Wall
-            do j = 1, (ny-1)
-                i=nx
-                pnew(i,j)=pnew(i-1,j)
-            end do
+           ! do j = 1, (ny-1)
+           !     i=nx
+           !     pnew(i,j)=pnew(i-1,j)
+           ! end do
 
 
 
@@ -370,7 +370,7 @@ program NS
             ! Y - Velocity Boundary Conditions
             do j=2,(ny-1)
                 i=nx
-                vnew(i,j)=vnew(i-1,j)
+                vnew(i,j)=0.0
             end do
                     
             do j=2,(ny-1)
