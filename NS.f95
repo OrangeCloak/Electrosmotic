@@ -56,13 +56,13 @@ program NS
     dx = lx/ir
     dy = ly/jr
 
-    Re = 0.0427
-    G = 23.42831211
-    alpha = 2.435560743
-    beta = 3.7e-23
+    Re = 0.5
+    alpha = 1
+    beta = 10000
+    G = beta/Re
 
 
-    dt = 0.001
+    dt = 1e-07
     nt = 10
 
 
@@ -129,7 +129,7 @@ program NS
 
                     phiTotal(i,j) = (phiE(i,j) - phiW(i,j))/dx + (phiN(i,j) - phiS(i,j))/dy
 
-                    ustar(i,j)=(ae(i,j)*uold(i+1,j)+aw(i,j)*uold(i-1,j) + an(i,j)*uold(i,j+1)+as(i,j)*uold(i,j-1)+ ap(i,j)*uold(i,j)) + dt*(1.0d0/dx)*(pold(i,j)-pold(i+1,j) + G*phiTotal(i,j)) 
+                    ustar(i,j)=(ae(i,j)*uold(i+1,j)+aw(i,j)*uold(i-1,j) + an(i,j)*uold(i,j+1)+as(i,j)*uold(i,j-1)+ ap(i,j)*uold(i,j)) + dt*(1.0d0/dx)*(pold(i,j)-pold(i+1,j) + G*sinh(alpha*phi(i,j))) 
                     
                 end do
             end do
@@ -146,7 +146,7 @@ program NS
             !Left Wall
             do j=1,ny
                 i=1
-                ustar(i,j)=1.0d0
+                ustar(i,j)=1.5d0
 
             end do
             
@@ -352,7 +352,7 @@ program NS
             !Left Wall
             do j=1,ny
                 i=1
-                unew(i,j)=1.0d0
+                unew(i,j)=1.5d0
             end do
             
             !Top Wall
